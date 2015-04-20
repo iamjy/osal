@@ -1,0 +1,190 @@
+#
+# GDB Init script for the Motorola 5307C3 eval board.
+#
+#
+set $IPSBAR = 0x40000000
+
+set $DCR    = $IPSBAR + 0x000040
+set $DACR0  = $IPSBAR + 0x000048
+set $DMR0   = $IPSBAR + 0x00004C
+
+set $CSAR0  = $IPSBAR + 0x000080
+set $CSMR0  = $IPSBAR + 0x000084
+set $CSCR0  = $IPSBAR + 0x00008A
+
+set $PAR_SDRAM = $IPSBAR + 0x100046
+set $PAR_AD    = $IPSBAR + 0x100040
+
+set $WCR    = $IPSBAR + 0x140000
+
+
+define delay
+  set $delay = 0
+  while ($delay < 20000)
+    set $delay += 1
+  end  
+end
+
+define delay_memsync
+  set $delay = 0
+  while ($delay < 10000)
+    set $delay += 1
+  end  
+end
+
+define setup-cs
+  # 2MB FLASH on CS0 at 0xFFE00000
+  set *(unsigned short *)$CSAR0 = 0x0000FFE0
+  set *(unsigned long  *)$CSMR0 = 0x001F0101
+  set *(unsigned short *)$CSCR0 = 0x00001980
+end
+
+define setup-sdram
+  # Set PAR_SDRAM to allow SDRAM signals to be enable
+  set *(unsigned char *)$PAR_SDRAM = 0x3F
+  # Set PAR_AD to allow 32-bit SDRAM if the external boot device is 16-bit
+  set *(unsigned char *)$PAR_AD = 0xE1
+
+  # SDRAM
+  set *(unsigned short *)$DCR   = 0x0446
+  set *(unsigned long *)$DACR0  = 0x00001300
+  set *(unsigned long *)$DMR0   = 0x00FC0001
+
+  # Set IP in DACR and init precharge.
+  set *(unsigned long *)$DACR0 |= 0x00000008
+  set *(0x00000000)             = 0xAA55AA55
+  delay
+
+  # Set RE in DACR
+  set *(unsigned long *)$DACR0 |= 0x00008000
+  # Issue IMRS
+  set *(unsigned long *)$DACR0 |= 0x00000040
+  set *(0x00000400)             = 0xAA55AA55
+  delay
+end
+
+define setup-other
+  # Turn Off WCR
+  set *(unsigned char *)$WCR = 0x00
+end
+
+##########################
+
+define mcf523xevb_init
+#
+# Set VBR to the beginning of what will be SDRAM
+# VBR is an absolute CPU register
+# SDRAM is at 0x00000000+0x0400000
+#
+set $vbr = 0x00000000
+
+#
+# Set RAMBAR = 0x20000001
+# RAMBAR is an absolute CPU register
+# This is the location of the internal 64k of SRAM on the chip
+#
+set *(unsigned char *)0x20000001= 0x0C05
+# set $rambar = 0x20000001
+
+#
+# Set PAR_SDRAM to allow SDRAM signals to be enabled
+#
+set *(unsigned char *)0x40100046 = 0x3F
+
+#
+# Set PAR_AD to allow 32-bit SDRAM if the exteranl boot device is 16-bits
+#
+set *(unsigned char *)0x40100040 = 0xE1
+
+#
+# Turn Off WCR
+#
+set *(unsigned char *)0x40140000 = 0x0000
+
+#
+# 1MB ASRAM on CS1 at 0x30000000
+#
+#  CSAR1, CSMR1, CSCR1
+#
+# set *(unsigned short *)0x4000008C =     0x3000
+# set *(unsigned long  *)0x40000090 = 0x000F0001
+# set *(unsigned short *)0x40000096 =     0x3D20
+
+
+#
+# 2MB FLASH on CS0 at 0xFFE00000
+#
+#  CSAR0, CSMR0, CSCR0
+#
+set *(unsigned short *)0x40000080 =     0xFFE0
+set *(unsigned long  *)0x40000084 = 0x001F0001
+set *(unsigned short *)0x4000008A =     0x1980
+delay
+
+#
+# SDRAM
+# Like the 5307 and 5407 Cadre 3 boards, this board uses DCR,DACR, DMR to access SDRAM
+#
+#  DCR, DACR0, DMR0
+#
+set *(unsigned short *)0x40000040 =     0x0446
+set *(unsigned long  *)0x40000048 = 0x00001300
+set *(unsigned long  *)0x4000004C = 0x00FC0001
+
+#
+# DACR0, write data to 0x0000_0000
+#
+set *(unsigned long  *)0x40000048 = 0x00001308
+set *(unsigned long  *)0x00000000 = 0x00000000
+delay
+
+#
+# DACR0, DACR0
+#
+set *(unsigned long  *)0x40000048 = 0x00009300
+set *(unsigned long  *)0x40000048 = 0x00009340
+set *(unsigned long  *)0x00000400 = 0x00000000
+delay
+set *(unsigned long  *)0x00000400 = 0x00000000
+delay
+
+#
+# Disable the watchdog timer in WCR
+#
+set *(unsigned short *)0x40140000 = 0x0000
+end
+#######################
+
+#
+# call Loadapp to load the application
+#
+define loadapp  
+  load 
+  set $pc  = start 
+  select-frame 0
+end
+
+#
+#	Init for 5307C3 ColdFire target...
+#
+target bdm /dev/bdmcf0
+
+bdm-reset
+set $vbr = 0x0
+set $rambar = 0x20000001
+  
+# setup-other
+# setup-cs
+# setup-sdram
+
+mcf523xevb_init
+
+echo \n
+echo 1. Type 'loadapp' to download the code\n
+echo 2. Type 'c' to start it.\n
+echo \n
+echo Type "ctrl-c" to stop the code and debug\n
+
+set print pretty
+set print asm-demangle
+

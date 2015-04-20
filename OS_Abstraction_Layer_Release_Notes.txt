@@ -1,0 +1,111 @@
+This is the third public release for the OS Abstraction Layer library from NASA/GSFC Code 582.
+
+Version: 2.10
+Date:    10/25/2007
+Contact Information: Alan Cudmore
+                     NASA Goddard Space Flight Center
+                     Code 582.0
+                     Greenbelt, MD 20771
+                     Alan.P.Cudmore@nasa.gov
+
+Copyright notice:
+"Copyright United States Government" as represented by the Administrator of the National Aeronautics and Space Administration
+
+License information:
+This software is licensed under NASA's Open Source Agreement. The release of the software is conditional upon the recipient's acceptance of the Open Source Agreement. Please see the file: NASA_Open_Source_Agreement_1_3-OS_AbstractionLayer.txt
+
+Major changes from version 2.0 to 2.10:
+- A Counting Semaphore API was added. 
+- All OS APIs have corresponding delete APIs ( delete tasks, queues, semaphores, etc )
+- Many bugs have been fixed. The OSAPI internal data structures are now all gaurded by mutexes.
+- The OS_printf API has been added along with a utility task that buffers the output, rather than dumping it to stdout.
+- New interrupt functions have been added to correspond to vxWorks intLock and intUnlock.
+- Additional file system APIs have been added: OS_initfs, OS_GetPhysDriveName, OS_cp, OS_mv, OS_FDGetInfo, OS_rmfs
+- The File system API now uses it's own file descriptor, rather than passing the system file descriptor through.
+- The Makefile/build system has been re-done. Now all of the OSAL code and example programs are built in a separate directory
+- Obsolete OSs and architectures have been removed. The following OSs are supported: 
+  Mac OS X, Linux/Cygwin, RTEMS, and vxWorks 6.x
+-The following platforms are supported in this release:
+  Generic PPC/vxWorks 6.4, x86 Linux, x86 and PPC Mac OS X, Coldfire/RTEMS
+- Other Platforms and Architectures should be easy to add ( i.e. Sparc/LEON RTEMS, ARM/RTEMS, x86 vxWorks, etc.. )
+
+Future release plans:
+- Fill in some of the missing functionality: shared memory API, Process API, Interrupt APIs, Hardware APIs
+- Simplify file system layer 
+- Include contributions made to the OSAL library by other users  
+- Improve testsuite and examples. 
+- Improve POSIX port priority handling ( Linux, OS X )
+- Improve Linux Queue implementation ( use posix message queues )
+
+Known problems: 
+- The OS X OS_TaskDelete implementation is not working correctly. 
+- There are a few warnings in the OSAL library and the examples.
+
+Credits:
+Version 2.0 - 2.10: 
+    Nicholas Yanchik, NASA/GSFC, Code 582
+      - Version 2 API coding
+      - Documentation
+      - Tests and examples
+      - ( just about everything in version 2 )     
+    Jacob Hageman, NASA/GSFC, Code 582
+      - Testing/updating Linux version to run on Cygwin
+Version 1: 
+    Alan Cudmore,  NASA/GSFC, Code 582
+      - Original design and coding
+      - POSIX based ports
+      - Directory structure and makefiles
+    J-P Swinski, NASA/GSFC, Code 582 
+      - Coding/vxWorks port
+    Ezra Yeheskeli, NASA/GSFC, RSC    
+      - Design and coding
+      - RTEMS Port
+      - Documentation
+
+OS Abstraction Layer information:
+This distribution contains:
+1. The OS Abstraction Layer Library
+2. The Hardware abstraction layer Library
+3. At least one example application
+4. Impelemtations for the following targets:
+   - Generic PPC running vxWorks 6.x ( Tested on vxWorks 6.4 )
+   - Axiom m5235BCC Coldfire Evaluation board running the RTEMS 4.7 Operating System
+   - A standard Intel Pentium PC running Linux ( or Cygwin )
+   - A Power PC or Intel Macintosh running Mac OS X ( 10.3 or better )
+5. A directory structre and makefiles to manage it all.
+
+Getting Started:
+See the document doc/OSAL-Configuration-Guide-1.0.doc for complete details.
+
+All of the targets included build with the GNU compiler tools and rely on GNU make. The makefiles work on Mac OS X, Linux, and Solaris. The provided examples have been tested and work under Microsoft Windows XP and Cygwin. Other versions of Microsoft Windows have not been tested, but similar versions should work.
+
+An easy way to get started is to use the Linux or Mac OS X ports. 
+For a linux box:
+1. Set the OSAL_SRC environment variable to point to the OSAL source code. Running setvars.sh will set the variable for you ( $ . ./setvars.sh )
+2. Edit the build/osal-config.mak file and set the following options:
+HWARCH - Set this to the processor architecture you are building for. For a linux PC, use x86.
+PLATFORM - Set this to the board you are running on. For a PC running linux, just use PC.
+OS - Set this to the OS you are running. For a PC running linux, use linux.
+Example of a PC running linux:
+
+export OSAL_SRC = /home/acudmore/osal/src
+
+In build/osal-config.mak:
+HWARCH=x86
+PLATFORM=pc
+OS=linux
+
+Now just type 'make' from the build directory and it should build the OSAL core files and sample applications for you.
+The binary for each application is it's own directory ( i.e. build/example1/example1.bin )
+You can switch to that directory and run it. You can also debug it using GDB.
+
+The Mac OS X target will work almost exactly the same way.
+
+The Embedded targets take a little more work to run, because they must be cross compiled and booted on the board. 
+By copying a target, you should be able to come up with a new target.
+
+If you would like just the OSAL itself, just look in common/inc for the include files and os/<your os here> for the OS AL implementation. The Hardware abstraction layer implementation is buried down in the 'arch' directory.
+
+The API document is in the 'doc' directory.
+
+The test files for the program are located in src/apps directory under example1, test1, and test2. The example1 file creates several tasks and passes messages back and forth between them. The test1 file test main OSAPI functionality. The test2 file tests the filesystem functionality. There are readme files in each directory which better explain each test.
